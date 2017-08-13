@@ -3,8 +3,7 @@ import math
 
 class PopEye:
 
-    def __init__(self, position, radius, pupil_radius=.3, pupil_rho=0, pupil_phi=0):
-        self.position = position
+    def __init__(self, radius, pupil_radius=.3, pupil_rho=0, pupil_phi=0):
         self.radius = radius
         self.pupil_radius = pupil_radius
         self.pupil_rho = pupil_rho
@@ -13,7 +12,7 @@ class PopEye:
     def render(self, dwg):
         g = dwg.g()
 
-        eye = dwg.circle(center=self.position, r=self.radius, fill="white", stroke_width=0)
+        eye = dwg.circle(center=(0, 0), r=self.radius, fill="white", stroke_width=0)
         g.add(eye)
 
         pupil_radius = self.radius * self.pupil_radius
@@ -24,8 +23,8 @@ class PopEye:
         )
 
         pupil_coords = (
-            self.position[0] + pupil_rho * math.cos(self.pupil_phi),
-            self.position[1] + pupil_rho * math.sin(self.pupil_phi)
+            pupil_rho * math.cos(self.pupil_phi),
+            pupil_rho * math.sin(self.pupil_phi)
         )
 
         pupil = dwg.circle(center=pupil_coords, r=pupil_radius, fill="black", stroke_width=0)

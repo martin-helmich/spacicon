@@ -12,8 +12,9 @@ app = Flask(__name__)
 def eye_pop():
     drawing = Drawing()
 
-    e = PopEye((50, 50), 50, .6, .6, .5 * math.pi)
+    e = PopEye(50, .6, .6, .5 * math.pi)
     g = e.render(drawing)
+    g.translate(50, 50)
 
     drawing.add(g)
 
@@ -29,8 +30,9 @@ def alien_glorb():
     drawing.add(background.render(drawing))
 
     #a = GlorbAlien(position=(75, 75), size=60)
-    a = random_glorb(prng, position=(prng.randint(50, 150), prng.randint(50, 150)), size=prng.randint(40, 80))
+    a = random_glorb(prng, size=prng.randint(40, 80))
     g = a.render(drawing)
+    g.translate(prng.randint(50, 150), prng.randint(50, 150))
     g.rotate(prng.gauss(0, 20))
 
     drawing.add(g)
