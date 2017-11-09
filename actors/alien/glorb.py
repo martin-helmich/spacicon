@@ -63,6 +63,7 @@ def random_glorb(prng, size):
                       mouth_height=prng.uniform(.3, .7),
                       antennae_count=prng.randint(1, 3),
                       antennae_relative_size=helper.random.gauss_limited(prng, .2, .1, .1, .3),
+                      antennae_rho=helper.random.gauss_limited(prng, 1.5, .2, 1.3, 1.7),
                       color=helper.colors.random_hex(prng))
 
 class GlorbAlien:
@@ -107,7 +108,7 @@ class GlorbAlien:
         # Render antennae
         antennae_rho = self.size * self.antennae_rho
         antennae_base_phi = 1.5 * math.pi
-        antennae_delta_phi = 0.4 * math.pi
+        antennae_delta_phi = 0.2 * math.pi
         antennae_delta_phi_total = (self.antennae_count - 1) * antennae_delta_phi
         antennae_left_phi = antennae_base_phi - antennae_delta_phi_total / 2
         antennae = []
