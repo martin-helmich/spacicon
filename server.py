@@ -1,4 +1,5 @@
 from flask import Flask, request, Response
+from flask_caching import Cache
 from objects.eye.pop import PopEye
 from objects.arm.hand import ArmWithHand
 from objects.leg.foot import LegWithFoot
@@ -10,8 +11,13 @@ from cairosvg import svg2png
 from typing import Tuple, Any, Union
 import math
 import random
+import os
 
 app = Flask(__name__)
+
+cache_config = {key: val for key, val in os.environ.items() if key.startswith("CACHE_")}
+print("Using cache config %s", cache_config)
+cache = Cache(app, config=cache_config)
 
 @app.route("/objects/eye/pop")
 def eye_pop() -> str:
@@ -94,6 +100,7 @@ def astro_glorb() -> str:
     return drawing.tostring()
 
 @app.route("/team.<format>")
+@cache.cached(timeout=86400, query_string=True)
 def team(format: str) -> Union[Response, Tuple[Any, int]]:
     drawing = Drawing()
 
