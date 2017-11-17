@@ -1,18 +1,21 @@
 from math import pi, sin, cos
 import helper.colors
+from svgwrite import Drawing
+from svgwrite.container import Group
+from typing import Optional
 
 class ArmWithHand:
 
     def __init__(self,
-                 arm_length,
-                 arm_color,
-                 thickness_shoulder=30,
-                 thickness_hand=None,
-                 hand_finger_count=4,
-                 hand_finger_length=None,
-                 hand_finger_spread=.3 * pi,
-                 hand_color="#ffff00",
-                 reverse_shadow=False):
+                 arm_length: float,
+                 arm_color: str,
+                 thickness_shoulder: float = 30,
+                 thickness_hand: Optional[float] = None,
+                 hand_finger_count: int = 4,
+                 hand_finger_length: Optional[float] = None,
+                 hand_finger_spread: float = .3 * pi,
+                 hand_color: str = "#ffff00",
+                 reverse_shadow: bool = False) -> None:
         if thickness_hand is None:
             thickness_hand = thickness_shoulder / 3 * 2
         if hand_finger_length is None:
@@ -28,7 +31,7 @@ class ArmWithHand:
         self.hand_color = hand_color
         self.reverse_shadow = reverse_shadow
 
-    def render(self, dwg):
+    def render(self, dwg: Drawing) -> Group:
         g = dwg.g()
 
         arm = dwg.path(fill=self.arm_color)

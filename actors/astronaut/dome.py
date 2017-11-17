@@ -4,47 +4,40 @@ import uuid
 import math
 from objects.arm.hand import ArmWithHand
 from objects.leg.foot import LegWithFoot
+from objects import Renderable
+from random import Random
+from typing import List, Tuple
+from svgwrite import Drawing
+from svgwrite.container import Group
 
-SOCKET_COLORS=[
+SOCKET_COLORS: List[str] = [
     "#606060",
     "#D49090",
     "#6D9C68"
 ]
 
-BODY_COLORS=[
+BODY_COLORS: List[str] = [
     "#303030",
     helper.colors.darken_hex("#D49090", .5),
     helper.colors.darken_hex("#6D9C68", .5)
 ]
 
-def random_domed_astronaut(prng, head):
-    return DomeHelmetAstronaut(head,
-                               head.size,
-                               socket_color=prng.choice(SOCKET_COLORS),
-                               body_color=prng.choice(BODY_COLORS),
-                               body_fatness=helper.random.gauss_limited(prng, .8, .1),
-                               body_height=helper.random.gauss_limited(prng, 2., .25),
-                               body_left_arm_angle=prng.uniform(-.3, .3) * math.pi,
-                               body_right_arm_angle=prng.uniform(-.3, .3) * math.pi,
-                               legs_height=helper.random.gauss_limited(prng, 1.5, .25)
-                               )
-
 class DomeHelmetAstronaut:
 
     def __init__(self,
-                 head,
-                 head_size,
-                 socket_color="#606060",
-                 body_color="#303030",
-                 body_fatness=.8,
-                 body_height=2,
-                 body_left_arm_angle = .3 * math.pi,
-                 body_right_arm_angle = .2 * math.pi,
-                 legs_height=1.5,
-                 arm_count=2,
+                 head: Renderable,
+                 head_size: int,
+                 socket_color: str = "#606060",
+                 body_color: str = "#303030",
+                 body_fatness: float = .8,
+                 body_height: float = 2,
+                 body_left_arm_angle: float = .3 * math.pi,
+                 body_right_arm_angle: float = .2 * math.pi,
+                 legs_height: float = 1.5,
+                 arm_count: int = 2,
                  arm_params={},
                  leg_params={},
-                 ):
+                 ) -> None:
         self.id = uuid.uuid4()
         self.head = head
         self.head_size = head_size
@@ -62,7 +55,7 @@ class DomeHelmetAstronaut:
         self.leg_params = leg_params
         self.legs_height = legs_height
 
-    def render(self, dwg):
+    def render(self, dwg: Drawing) -> Group:
         g = dwg.g()
 
         head = self.head.render(dwg)
@@ -74,8 +67,8 @@ class DomeHelmetAstronaut:
 
         socket_left = (-self.head_size * socket_relative_width, self.head_size * .5)
         socket_left_bottom = (socket_left[0], socket_left[1] + self.head_size * socket_relative_height)
-        socket_right = (self.head_size * socket_relative_width, self.head_size * .5)
-        socket_right_bottom = (socket_right[0], socket_right[1] + self.head_size * socket_relative_height)
+        socket_right: Tuple[float, float] = (self.head_size * socket_relative_width, self.head_size * .5)
+        socket_right_bottom: Tuple[float, float] = (socket_right[0], socket_right[1] + self.head_size * socket_relative_height)
 
         size_factor = self.head_size / 50.0
 
@@ -89,7 +82,7 @@ class DomeHelmetAstronaut:
         arm_params.update(self.arm_params)
 
         for i in range(self.arm_count):
-            left_arm = ArmWithHand(**arm_params)
+            left_arm = ArmWithHand(**arm_params) # type: ignore
             left_arm_g = left_arm.render(dwg)
 
             left_arm_x = socket_right_bottom[0] - left_arm.thickness_shoulder / 2 - (socket_right_bottom[0] - self.head_size * self.body_fatness) / (self.head_size * self.body_height) * i * left_arm.thickness_shoulder * 1.2
@@ -99,7 +92,7 @@ class DomeHelmetAstronaut:
 
             g.add(left_arm_g)
 
-            right_arm = ArmWithHand(reverse_shadow=True, **arm_params)
+            right_arm = ArmWithHand(reverse_shadow=True, **arm_params) # type: ignore
             right_arm_g = right_arm.render(dwg)
 
             right_arm_x = socket_left_bottom[0] + right_arm.thickness_shoulder / 2 + (-self.head_size * self.body_fatness - socket_left_bottom[0]) / (self.head_size * self.body_height) * i * right_arm.thickness_shoulder * 1.2
@@ -113,11 +106,18 @@ class DomeHelmetAstronaut:
         leg_thickness_thigh = self.body_fatness * self.head_size
         leg_thickness_foot = leg_thickness_thigh * .7
 
-        left_leg = LegWithFoot(leg_length=self.head_size * 1,
+        leg_length = self.head_size * 1
+
+        boot_height = leg_length * .5
+        foot_length = leg_length
+
+        left_leg = LegWithFoot(leg_length=leg_length, # type: ignore
                                leg_color=self.body_color,
                                thickness_thigh=leg_thickness_thigh,
                                thickness_foot=leg_thickness_foot,
                                foot_color=helper.colors.lighten_hex(self.body_color, 2),
+                               boot_height=boot_height,
+                               foot_length=foot_length,
                                **self.leg_params)
         left_leg_g = left_leg.render(dwg)
         left_leg_g.translate(0, self.head_size * self.body_height)
@@ -125,11 +125,13 @@ class DomeHelmetAstronaut:
 
         g.add(left_leg_g)
 
-        right_leg = LegWithFoot(leg_length=self.head_size * 1,
+        right_leg = LegWithFoot(leg_length=leg_length, # type: ignore
                                 leg_color=self.body_color,
                                 thickness_thigh=leg_thickness_thigh,
                                 thickness_foot=leg_thickness_foot,
                                 foot_color=helper.colors.lighten_hex(self.body_color, 2),
+                                boot_height=boot_height,
+                                foot_length=foot_length,
                                 **self.leg_params)
         right_leg_g = right_leg.render(dwg)
         right_leg_g.translate(0, self.head_size * self.body_height)
@@ -137,7 +139,6 @@ class DomeHelmetAstronaut:
         right_leg_g.scale(-1, 1)
 
         g.add(right_leg_g)
-
 
         body = dwg.path(fill=self.body_color)
         body.push("M %f %f" % (socket_right_bottom[0], socket_right_bottom[1]))
@@ -194,3 +195,15 @@ class DomeHelmetAstronaut:
         g.add(dome_reflection)
 
         return g
+
+def random_domed_astronaut(prng: Random, head) -> DomeHelmetAstronaut:
+    return DomeHelmetAstronaut(head,
+                               head.size,
+                               socket_color=prng.choice(SOCKET_COLORS),
+                               body_color=prng.choice(BODY_COLORS),
+                               body_fatness=helper.random.gauss_limited(prng, .8, .1),
+                               body_height=helper.random.gauss_limited(prng, 2., .25),
+                               body_left_arm_angle=prng.uniform(-.3, .3) * math.pi,
+                               body_right_arm_angle=prng.uniform(-.3, .3) * math.pi,
+                               legs_height=helper.random.gauss_limited(prng, 1.5, .25)
+                               )

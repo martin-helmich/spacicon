@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request, Response
 from objects.eye.pop import PopEye
 from objects.arm.hand import ArmWithHand
 from objects.leg.foot import LegWithFoot
@@ -12,7 +12,7 @@ import random
 app = Flask(__name__)
 
 @app.route("/objects/eye/pop")
-def eye_pop():
+def eye_pop() -> str:
     drawing = Drawing()
 
     e = PopEye(50, .6, .6, .5 * math.pi)
@@ -24,7 +24,7 @@ def eye_pop():
     return drawing.tostring()
 
 @app.route("/objects/arms/hand")
-def arm_hand():
+def arm_hand() -> str:
     drawing = Drawing()
 
     r = drawing.rect((-50, -50), (200, 200), stroke="black", fill="white")
@@ -38,7 +38,7 @@ def arm_hand():
     return drawing.tostring()
 
 @app.route("/objects/legs/foot")
-def leg_foot():
+def leg_foot() -> str:
     drawing = Drawing()
 
     r = drawing.rect((-50, -50), (200, 200), stroke="black", fill="white")
@@ -52,7 +52,7 @@ def leg_foot():
     return drawing.tostring()
 
 @app.route("/actors/alien/glorb")
-def alien_glorb():
+def alien_glorb() -> str:
     drawing = Drawing()
     prng = random.Random()
 
@@ -71,7 +71,7 @@ def alien_glorb():
     return drawing.tostring()
 
 @app.route("/actors/astronaut/glorb")
-def astro_glorb():
+def astro_glorb() -> str:
     drawing = Drawing()
     prng = random.Random()
 
@@ -90,3 +90,39 @@ def astro_glorb():
     drawing.add(g)
 
     return drawing.tostring()
+
+@app.route("/team")
+def team() -> Response:
+    drawing = Drawing()
+
+    w = 1000
+
+    drawing["width"] = "%dpx" % w
+    drawing["height"] = "400px"
+
+    background = StarsBackground(w, 400)
+    drawing.add(background.render(drawing))
+
+    emails = request.args.getlist("emails")[0:10]
+    print(emails)
+
+    max_size = 80 - (len(emails) - 4) * 7
+    border = max_size / 2
+    distance = (w - 2 * border) / max(1, len(emails))
+
+    for i, email in enumerate(emails):
+        prng = random.Random(email)
+
+        a = random_glorb(prng, size=prng.randint(math.floor(max_size * .5), math.floor(max_size * .7)))
+        
+        astro = random_domed_astronaut(prng, a)
+        
+        g = astro.render(drawing)
+        g.translate(i * distance + border * 3, prng.randint(100, 200))
+        g.rotate(prng.gauss(0, 20))
+
+        drawing.add(g)
+
+    res = Response(drawing.tostring())
+    res.headers["Content-Type"] = "image/svg+xml"
+    return res

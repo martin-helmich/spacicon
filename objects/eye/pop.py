@@ -1,15 +1,17 @@
 from svgwrite import Drawing
+from svgwrite.container import Group
+from objects import Renderable
 import math
 
-class PopEye:
+class PopEye(Renderable):
 
-    def __init__(self, radius, pupil_radius=.3, pupil_rho=0, pupil_phi=0):
+    def __init__(self, radius: float, pupil_radius: float = .3, pupil_rho: float = 0, pupil_phi: float = 0) -> None:
         self.radius = radius
         self.pupil_radius = pupil_radius
         self.pupil_rho = pupil_rho
         self.pupil_phi = pupil_phi
 
-    def render(self, dwg):
+    def render(self, dwg: Drawing) -> Group:
         g = dwg.g()
 
         eye = dwg.circle(center=(0, 0), r=self.radius, fill="white", stroke_width=0)

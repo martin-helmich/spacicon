@@ -1,7 +1,10 @@
 *.pyc
+__pycache__
 .Python
 pip-selfcheck.json
 
+/.mypy_cache
+/.vscode
 /bin/
 /include/
 /lib/

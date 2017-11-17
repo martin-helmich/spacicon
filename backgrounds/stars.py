@@ -1,15 +1,22 @@
 import helper.colors
-import random
+from objects import Renderable
+from random import Random
+from svgwrite import Drawing
+from svgwrite.container import Group
 
-class StarsBackground:
+class StarsBackground(Renderable):
 
-    def __init__(self, w, h, color = helper.colors.darken_hex("#0000ff", 0.8), prng = random.Random()):
+    def __init__(self,
+                 w: int, 
+                 h: int, 
+                 color: str = helper.colors.darken_hex("#0000ff", 0.8), 
+                 prng: Random = Random()) -> None:
         self.width = w
         self.height = h
         self.color = color
         self.prng = prng
     
-    def render(self, dwg):
+    def render(self, dwg: Drawing) -> Group:
         r = dwg.rect(insert=(0, 0),
                      size=(self.width, self.height),
                      fill=self.color)
