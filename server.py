@@ -6,6 +6,8 @@ from actors.alien.glorb import random_glorb
 from actors.astronaut.dome import DomeHelmetAstronaut, random_domed_astronaut
 from backgrounds.stars import StarsBackground
 from svgwrite import Drawing
+from cairosvg import svg2png
+from typing import Tuple, Any, Union
 import math
 import random
 
@@ -91,8 +93,8 @@ def astro_glorb() -> str:
 
     return drawing.tostring()
 
-@app.route("/team")
-def team() -> Response:
+@app.route("/team.<format>")
+def team(format: str) -> Union[Response, Tuple[Any, int]]:
     drawing = Drawing()
 
     w = 1000
@@ -122,7 +124,18 @@ def team() -> Response:
         g.rotate(prng.gauss(0, 20))
 
         drawing.add(g)
+    
+    svg_code = drawing.tostring()
 
-    res = Response(drawing.tostring())
-    res.headers["Content-Type"] = "image/svg+xml"
-    return res
+    if format == "svg":
+        res = Response(drawing.tostring())
+        res.headers["Content-Type"] = "image/svg+xml"
+        return res
+    elif format == "png":
+        requested_width = int(request.args.get("s"))
+
+        res = Response(svg2png(bytestring=bytearray(svg_code, "utf-8"), scale=requested_width/w))
+        res.headers["Content-Type"] = "image/png"
+        return res
+
+    return None, 406
