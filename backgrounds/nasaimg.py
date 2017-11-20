@@ -1,11 +1,14 @@
 import helper.colors
 import os
 import os.path
+import math
 from objects import Renderable
 from random import Random
 from svgwrite import Drawing
 from svgwrite.container import Group
 from PIL import Image
+from typing import Tuple
+from io import BytesIO
 
 ASSET_DIR = os.path.realpath(os.path.dirname(__file__) + "/../assets/backgrounds")
 
@@ -30,7 +33,7 @@ class NASAImageBackground(Renderable):
         self.img_path = os.path.join(ASSET_DIR, img)
         self.local_paths = local_paths
     
-    def render(self, dwg: Drawing) -> Group:
+    def random_configuration(self) -> Tuple[int, int, float, float, float]:
         width: int
         height: int
 
@@ -51,6 +54,26 @@ class NASAImageBackground(Renderable):
         max_x_translate = (width * scale) - self.width
         max_y_translate = (height * scale) - self.height
 
+        x_translate = self.prng.uniform(min_x_translate, max_x_translate)
+        y_translate = self.prng.uniform(min_y_translate, max_y_translate)
+
+        return (width, height, scale, x_translate, y_translate)
+    
+    def render_raster(self):
+        width, height, scale, x_translate, y_translate = self.random_configuration()
+
+        with Image.open(self.img_path) as img:
+            resized = img.resize((math.ceil(width * scale), math.ceil(height * scale)), Image.HAMMING)
+            cropped = resized.crop((x_translate, y_translate, x_translate + self.width, y_translate + self.height))
+
+            fp = BytesIO()
+            cropped.save(fp, format="JPEG", quality=80)
+
+            return fp.getvalue()
+
+    def render(self, dwg: Drawing) -> Group:
+        width, height, scale, x_translate, y_translate = self.random_configuration()
+
         image_url = "/assets/%s" % self.img
         if self.local_paths:
             image_url = "file://%s" % os.path.join(ASSET_DIR, self.img)
@@ -62,16 +85,14 @@ class NASAImageBackground(Renderable):
         r["height"] = "%dpx" % height
 
         r.scale(scale)
-        r.translate(self.prng.uniform(min_x_translate, - max_x_translate),
-                    self.prng.uniform(min_y_translate, - max_y_translate))
+        r.translate(- x_translate, - y_translate)
 
         g.add(r)
 
         return g
 
-def random_background(prng: Random, width: int, height: int, local_paths: bool = False) -> Renderable:
+def random_background(prng: Random, width: int, height: int, local_paths: bool = False) -> NASAImageBackground:
     images = [p for p in os.listdir(ASSET_DIR) if p.endswith(".jpg")]
     image = prng.choice(images)
-    #image = "PIA03149~orig.jpg"
 
     return NASAImageBackground(width, height, image, local_paths, prng)

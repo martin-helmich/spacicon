@@ -10,6 +10,7 @@ from backgrounds.stars import StarsBackground
 from backgrounds.nasaimg import random_background
 from backgrounds.linked import LinkedBackground
 from svgwrite import Drawing
+from svgwrite.container import Group
 from cairosvg import svg2png
 from typing import Tuple, Any, Union
 from random import Random
@@ -20,7 +21,6 @@ import os
 app = Flask(__name__)
 
 cache_config = {key: val for key, val in os.environ.items() if key.startswith("CACHE_")}
-print("Using cache config %s", cache_config)
 cache = Cache(app, config=cache_config)
 
 @app.route("/objects/eye/pop")
@@ -107,26 +107,30 @@ def astro_glorb() -> str:
 def serve_asset(file: str) -> Response:
     return send_file("assets/backgrounds/%s" % file, mimetype="image/jpeg")
 
+@app.route("/team/<id>/background/<int:width>x<int:height>")
 @app.route("/team/<id>/background")
 @cache.cached(timeout=86400 * 30, query_string=True)
-def team_background(id: str) -> Response:
-    drawing = Drawing()
+def team_background(id: str, width: int = 1000, height: int = 400) -> Response:
     team_prng = Random(id)
 
-    width = request.args.get("w", default=1000)
-    height = request.args.get("h", default=400)
-
-    drawing["width"] = "%dpx" % width
-    drawing["height"] = "%dpx" % height
-
     background = random_background(team_prng, width, height, local_paths=True)
-    drawing.add(background.render(drawing))
+    jpeg_bytes = background.render_raster()
 
-    svg_code = drawing.tostring()
-
-    res = Response(svg2png(bytestring=bytearray(svg_code, "utf-8"), scale=1))
-    res.headers["Content-Type"] = "image/png"
+    res = Response(jpeg_bytes)
+    res.headers["Content-Type"] = "image/jpeg"
+    res.headers["Cache-Control"] = "public, immutable, max-age=%d" % (86400 * 30)
     return res
+
+def generate_profile_image(user_id: str, drawing: Drawing) -> Group:
+    prng = random.Random(user_id)
+    max_size = 80
+
+    a = random_glorb(prng, size=prng.randint(math.floor(max_size * .5), math.floor(max_size * .7)))
+
+    astro = random_domed_astronaut(prng, a)
+
+    g = astro.render(drawing)
+    return g
 
 @app.route("/team/<id>.<format>")
 @cache.cached(timeout=86400, query_string=True)
@@ -144,7 +148,7 @@ def team(id: str, format: str) -> Union[Response, Tuple[Any, int]]:
     generate_random = request.args.get("random")
 
     if generate_random:
-        team_id = random.random()
+        team_id = "%s" % random.random()
         email_count = random.randint(1, 8)
         emails = [random.random() for r in range(email_count)]
 
@@ -155,25 +159,21 @@ def team(id: str, format: str) -> Union[Response, Tuple[Any, int]]:
         background = random_background(team_prng, w, h, local_paths=format == "png")
     else:
         host = request.host
-        url = "//%s/team/%s/background" % (host, team_id)
+        url = "//%s/team/%s/background/%dx%d" % (host, team_id, w, h)
         background = LinkedBackground(url, w, h)
 
     drawing.add(background.render(drawing))
 
     distance = w / (len(emails) + 1)
 
-    max_size = 80 - (len(emails) - 4) * 7
+    profile_scale = 1 - (len(emails) - 4) * (7/80)
 
     for i, email in enumerate(emails):
-        prng = random.Random(email)
+        g = generate_profile_image(email, drawing)
 
-        a = random_glorb(prng, size=prng.randint(math.floor(max_size * .5), math.floor(max_size * .7)))
-        
-        astro = random_domed_astronaut(prng, a)
-        
-        g = astro.render(drawing)
         g.translate((i + 1) * distance , team_prng.randint(100, 200))
         g.rotate(team_prng.gauss(0, 20))
+        g.scale(profile_scale)
 
         drawing.add(g)
     
@@ -182,6 +182,7 @@ def team(id: str, format: str) -> Union[Response, Tuple[Any, int]]:
     if format == "svg":
         res = Response(drawing.tostring())
         res.headers["Content-Type"] = "image/svg+xml"
+        res.headers["Cache-Control"] = "public, immutable, max-age=%d" % (86400 * 30)
         return res
     elif format == "png":
         requested_width: int
@@ -192,6 +193,7 @@ def team(id: str, format: str) -> Union[Response, Tuple[Any, int]]:
 
         res = Response(svg2png(bytestring=bytearray(svg_code, "utf-8"), scale=requested_width/w))
         res.headers["Content-Type"] = "image/png"
+        res.headers["Cache-Control"] = "public, immutable, max-age=%d" % (86400 * 30)
         return res
 
     return None, 406
