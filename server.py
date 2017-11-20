@@ -132,6 +132,61 @@ def generate_profile_image(user_id: str, drawing: Drawing) -> Group:
     g = astro.render(drawing)
     return g
 
+@app.route("/profile/<id>.<format>")
+@cache.cached(timeout=86400, query_string=True)
+def profile(id: str, format: str):
+    drawing = Drawing()
+
+    w = 320
+    h = 320
+
+    drawing["width"] = "%dpx" % w
+    drawing["height"] = "%dpx" % h
+
+    prng = Random(id)
+
+    background: Renderable
+    if format == "png":
+        background = random_background(prng, w, h, local_paths=format == "png")
+    else:
+        host = request.host
+        url = "//%s/team/%s/background/%dx%d" % (host, id, w, h)
+        background = LinkedBackground(url, w, h)
+
+    drawing.add(background.render(drawing))
+
+    distance = w / 2
+    profile_scale = 10 * (7/80)
+
+    g = generate_profile_image(id, drawing)
+
+    g.translate(distance , prng.uniform(h*0.25, h*.5))
+    g.rotate(prng.gauss(0, 20))
+    g.scale(profile_scale)
+
+    drawing.add(g)
+    
+    svg_code = drawing.tostring()
+
+    if format == "svg":
+        res = Response(drawing.tostring())
+        res.headers["Content-Type"] = "image/svg+xml"
+        res.headers["Cache-Control"] = "public, immutable, max-age=%d" % (86400 * 30)
+        return res
+    elif format == "png":
+        requested_width: int
+        try:
+            requested_width = int(request.args.get("s"))
+        except:
+            requested_width = 320
+
+        res = Response(svg2png(bytestring=bytearray(svg_code, "utf-8"), scale=requested_width/w))
+        res.headers["Content-Type"] = "image/png"
+        res.headers["Cache-Control"] = "public, immutable, max-age=%d" % (86400 * 30)
+        return res
+
+    return None, 406
+
 @app.route("/team/<id>.<format>")
 @cache.cached(timeout=86400, query_string=True)
 def team(id: str, format: str) -> Union[Response, Tuple[Any, int]]:
