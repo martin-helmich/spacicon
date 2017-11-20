@@ -205,5 +205,6 @@ def random_domed_astronaut(prng: Random, head) -> DomeHelmetAstronaut:
                                body_height=helper.random.gauss_limited(prng, 2., .25),
                                body_left_arm_angle=prng.uniform(-.3, .3) * math.pi,
                                body_right_arm_angle=prng.uniform(-.3, .3) * math.pi,
-                               legs_height=helper.random.gauss_limited(prng, 1.5, .25)
+                               legs_height=helper.random.gauss_limited(prng, 1.5, .25),
+                               arm_count=prng.randint(1, 2)
                                )

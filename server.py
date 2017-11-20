@@ -1,14 +1,18 @@
-from flask import Flask, request, Response
+from flask import Flask, request, Response, send_file
 from flask_caching import Cache
+from objects import Renderable
 from objects.eye.pop import PopEye
 from objects.arm.hand import ArmWithHand
 from objects.leg.foot import LegWithFoot
 from actors.alien.glorb import random_glorb
 from actors.astronaut.dome import DomeHelmetAstronaut, random_domed_astronaut
 from backgrounds.stars import StarsBackground
+from backgrounds.nasaimg import random_background
+from backgrounds.linked import LinkedBackground
 from svgwrite import Drawing
 from cairosvg import svg2png
 from typing import Tuple, Any, Union
+from random import Random
 import math
 import random
 import os
@@ -99,25 +103,66 @@ def astro_glorb() -> str:
 
     return drawing.tostring()
 
-@app.route("/team.<format>")
+@app.route("/assets/<file>")
+def serve_asset(file: str) -> Response:
+    return send_file("assets/backgrounds/%s" % file, mimetype="image/jpeg")
+
+@app.route("/team/<id>/background")
+@cache.cached(timeout=86400 * 30, query_string=True)
+def team_background(id: str) -> Response:
+    drawing = Drawing()
+    team_prng = Random(id)
+
+    width = request.args.get("w", default=1000)
+    height = request.args.get("h", default=400)
+
+    drawing["width"] = "%dpx" % width
+    drawing["height"] = "%dpx" % height
+
+    background = random_background(team_prng, width, height, local_paths=True)
+    drawing.add(background.render(drawing))
+
+    svg_code = drawing.tostring()
+
+    res = Response(svg2png(bytestring=bytearray(svg_code, "utf-8"), scale=1))
+    res.headers["Content-Type"] = "image/png"
+    return res
+
+@app.route("/team/<id>.<format>")
 @cache.cached(timeout=86400, query_string=True)
-def team(format: str) -> Union[Response, Tuple[Any, int]]:
+def team(id: str, format: str) -> Union[Response, Tuple[Any, int]]:
     drawing = Drawing()
 
     w = 1000
+    h = 400
 
     drawing["width"] = "%dpx" % w
-    drawing["height"] = "400px"
+    drawing["height"] = "%dpx" % h
 
-    background = StarsBackground(w, 400)
+    team_id = id
+    emails = request.args.getlist("emails")[0:10]
+    generate_random = request.args.get("random")
+
+    if generate_random:
+        team_id = random.random()
+        email_count = random.randint(1, 8)
+        emails = [random.random() for r in range(email_count)]
+
+    team_prng = Random(team_id)
+
+    background: Renderable
+    if format == "png":
+        background = random_background(team_prng, w, h, local_paths=format == "png")
+    else:
+        host = request.host
+        url = "//%s/team/%s/background" % (host, team_id)
+        background = LinkedBackground(url, w, h)
+
     drawing.add(background.render(drawing))
 
-    emails = request.args.getlist("emails")[0:10]
-    print(emails)
+    distance = w / (len(emails) + 1)
 
     max_size = 80 - (len(emails) - 4) * 7
-    border = max_size / 2
-    distance = (w - 2 * border) / max(1, len(emails))
 
     for i, email in enumerate(emails):
         prng = random.Random(email)
@@ -127,8 +172,8 @@ def team(format: str) -> Union[Response, Tuple[Any, int]]:
         astro = random_domed_astronaut(prng, a)
         
         g = astro.render(drawing)
-        g.translate(i * distance + border * 3, prng.randint(100, 200))
-        g.rotate(prng.gauss(0, 20))
+        g.translate((i + 1) * distance , team_prng.randint(100, 200))
+        g.rotate(team_prng.gauss(0, 20))
 
         drawing.add(g)
     
@@ -139,7 +184,11 @@ def team(format: str) -> Union[Response, Tuple[Any, int]]:
         res.headers["Content-Type"] = "image/svg+xml"
         return res
     elif format == "png":
-        requested_width = int(request.args.get("s"))
+        requested_width: int
+        try:
+            requested_width = int(request.args.get("s"))
+        except:
+            requested_width = 1000
 
         res = Response(svg2png(bytestring=bytearray(svg_code, "utf-8"), scale=requested_width/w))
         res.headers["Content-Type"] = "image/png"
