@@ -6,7 +6,7 @@ spacicon is a small, Python-based web service that serves procedurally generated
 
 ## Examples
 
-<img src="examples/spacicon-1.png" style="width:33%"><img src="examples/spacicon-2.png" style="width:33%"><img src="examples/spacicon-3.png" style="width:33%">
+<img src="examples/spacicon-1.png" width="33%"><img src="examples/spacicon-2.png" width="33%"><img src="examples/spacicon-3.png" width="33%">
 
 ## Docker quickstart
 
