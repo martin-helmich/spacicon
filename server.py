@@ -199,7 +199,7 @@ def team(id: str, format: str) -> Union[Response, Tuple[Any, int]]:
     drawing["height"] = "%dpx" % h
 
     team_id = id
-    emails = request.args.getlist("emails")[0:10]
+    emails = request.args.getlist("user")[0:10]
     generate_random = request.args.get("random")
 
     if generate_random:
