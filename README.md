@@ -1,5 +1,7 @@
 # spacicon: Procedurally generated space-themed avatars
 
+[![Docker Repository on Quay](https://quay.io/repository/martinhelmich/spacicon/status "Docker Repository on Quay")](https://quay.io/repository/martinhelmich/spacicon)
+
 >**Note**: This is a just-for-fun-project, made for no other reasons than me obviously having nothing better to do.
 
 spacicon is a small, Python-based web service that serves procedurally generated, space- and alien-themed avatars.
@@ -12,12 +14,12 @@ spacicon is a small, Python-based web service that serves procedurally generated
 
 Quick and easy:
 
-    $ docker run -d --name spacicon -p 80:5000 martinhelmich/spacicon
+    $ docker run -d --name spacicon -p 80:5000 quay.io/martinhelmich/spacicon
 
 With Redis caching:
 
     $ docker run -d --name spacicon-redis redis
-    $ docker run -d --name spacicon -p 80:5000 --link redis:redis -e CACHE_TYPE=redis -e CACHE_REDIS_URL=redis://redis:6379/1 martinhelmich/spacicon
+    $ docker run -d --name spacicon -p 80:5000 --link redis:redis -e CACHE_TYPE=redis -e CACHE_REDIS_URL=redis://redis:6379/1 quay.io/martinhelmich/spacicon
 
 ## Usage
 
