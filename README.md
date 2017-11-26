@@ -21,6 +21,13 @@ With Redis caching:
     $ docker run -d --name spacicon-redis redis
     $ docker run -d --name spacicon -p 80:5000 --link redis:redis -e CACHE_TYPE=redis -e CACHE_REDIS_URL=redis://redis:6379/1 quay.io/martinhelmich/spacicon
 
+## Kubernetes quickstart
+
+Using [Helm](https://helm.sh/):
+
+    $ helm repo add martinhelmich https://martin-helmich.github.io/helm-charts
+    $ helm install martinhelmich/spacicon
+
 ## Usage
 
 Get a procedurally generated profile image for a specific user:
