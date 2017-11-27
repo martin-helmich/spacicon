@@ -1,3 +1,8 @@
+import math
+import random
+import os
+from typing import Tuple, Any, Union
+from random import Random
 from flask import Flask, request, Response, send_file
 from flask_caching import Cache
 from objects import Renderable
@@ -8,15 +13,10 @@ from actors.alien.glorb import random_glorb
 from actors.astronaut.dome import DomeHelmetAstronaut, random_domed_astronaut
 from backgrounds.stars import StarsBackground
 from backgrounds.nasaimg import random_background
-from backgrounds.linked import LinkedBackground
+from backgrounds.linked import LinkedBackground, EmbeddedBackground
 from svgwrite import Drawing
 from svgwrite.container import Group
 from cairosvg import svg2png
-from typing import Tuple, Any, Union
-from random import Random
-import math
-import random
-import os
 
 app = Flask(__name__)
 
@@ -107,14 +107,20 @@ def astro_glorb() -> str:
 def serve_asset(file: str) -> Response:
     return send_file("assets/backgrounds/%s" % file, mimetype="image/jpeg")
 
-@app.route("/team/<id>/background/<int:width>x<int:height>")
-@app.route("/team/<id>/background")
-@cache.cached(timeout=86400 * 30, query_string=True)
-def team_background(id: str, width: int = 1000, height: int = 400) -> Response:
+@cache.memoize(timeout=86400 * 30)
+def build_team_background(id: str, width: int = 1000, height: int = 400) -> bytearray:
     team_prng = Random(id)
 
     background = random_background(team_prng, width, height, local_paths=True)
     jpeg_bytes = background.render_raster()
+
+    return jpeg_bytes
+
+@app.route("/team/<id>/background/<int:width>x<int:height>")
+@app.route("/team/<id>/background")
+@cache.cached(timeout=86400 * 30, query_string=True)
+def team_background(id: str, width: int = 1000, height: int = 400) -> Response:
+    jpeg_bytes = build_team_background(id, width, height)
 
     res = Response(jpeg_bytes)
     res.headers["Content-Type"] = "image/jpeg"
@@ -149,9 +155,8 @@ def profile(id: str, format: str):
     if format == "png":
         background = random_background(prng, w, h, local_paths=format == "png")
     else:
-        host = request.host
-        url = "//%s/team/%s/background/%dx%d" % (host, id, w, h)
-        background = LinkedBackground(url, w, h)
+        background_data = build_team_background(id, w, h)
+        background = EmbeddedBackground(background_data, w, h)
 
     drawing.add(background.render(drawing))
 
@@ -213,9 +218,8 @@ def team(id: str, format: str) -> Union[Response, Tuple[Any, int]]:
     if format == "png":
         background = random_background(team_prng, w, h, local_paths=format == "png")
     else:
-        host = request.host
-        url = "//%s/team/%s/background/%dx%d" % (host, team_id, w, h)
-        background = LinkedBackground(url, w, h)
+        background_data = build_team_background(team_id, w, h)
+        background = EmbeddedBackground(background_data, w, h)
 
     drawing.add(background.render(drawing))
 
